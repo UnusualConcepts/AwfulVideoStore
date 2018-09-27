@@ -1,44 +1,61 @@
-function statement(customer, movies) {
-    let totalAmount = 0;
-    let frequentRenterPoints = 0;
-    let result = `Rental Record for ${customer.name}\n`;
-    for (let r of customer.rentals) {
-        let movie = movies[r.movieID];
-        let thisAmount = 0;
+function statement(customer, movies, format = "text") {
 
-        // determine amount for each movie
-        switch (movie.code) {
-            case "regular":
-                thisAmount = 2;
-                if (r.days > 2) {
-                    thisAmount += (r.days - 2) * 1.5;
-                }
-                break;
-            case "new":
-                thisAmount = r.days * 3;
-                break;
-            case "childrens":
-                thisAmount = 1.5;
-                if (r.days > 3) {
-                    thisAmount += (r.days - 3) * 1.5;
-                }
-                break;
+    switch (format) {
+        case "text":
+            return textStatement();
+        case "html":
+            return htmlStatement();
+    }
+
+    function textStatement() {
+        let result = `Rental Record for ${customer.name}\n`;
+        for (let r of customer.rentals) {
+            result += `\t${movieFor(r).title}\t${thisAmountFor(r)}\n`;
         }
 
-        //add frequent renter points
-        frequentRenterPoints++;
-        // add bonus for a two day new release rental
-        if(movie.code === "new" && r.days > 2) frequentRenterPoints++;
-
-        //print figures for this rental
-        result += `\t${movie.title}\t${thisAmount}\n` ;
-        totalAmount += thisAmount;
+        result += `Amount owed is ${totalAmount()}\n`;
+        result += `You earned ${totalFrequentRentalPoints()} frequent renter points\n`;
+        return result;
     }
-    // add footer lines
-    result += `Amount owed is ${totalAmount}\n`;
-    result += `You earned ${frequentRenterPoints} frequent renter points\n`;
 
-    return result;
+    function htmlStatement() {
+        let result = `<h1>Rental Record for ${customer.name}</h1>`;
+        result += "<table>";
+        for (let r of customer.rentals) {
+            result += `<tr><td>${movieFor(r).title}</td><td>${thisAmountFor(r)}</td></tr>`;
+        }
+        result += "</table>";
+        result += `<p>Amount owed is ${totalAmount()}</p>`;
+        result += `<p>You earned ${totalFrequentRentalPoints()} frequent renter points</p>`;
+        return result;
+    }
+
+    function totalAmount() {
+        return customer.rentals.reduce((total, r) => total + thisAmountFor(r), 0);
+    }
+
+    function totalFrequentRentalPoints() {
+        return customer.rentals.map(frequentRentalPointsFor).reduce((total, r) => total + r);
+    }
+
+    function frequentRentalPointsFor(r) {
+        return movieFor(r).code === "new" && r.days > 2 ? 2 : 1;
+    }
+
+    function movieFor(r) {
+        return movies[r.movieID];
+    }
+
+    function thisAmountFor(r) {
+        switch (movieFor(r).code) {
+            case "regular":
+                return 2 + (r.days > 2 ? (r.days - 2) * 1.5 : 0);
+            case "new":
+                return r.days * 3;
+            case "childrens":
+                return 1.5 + (r.days > 3 ? (r.days - 3) * 1.5 : 0);
+        }
+    }
 }
 
 module.exports = statement;
